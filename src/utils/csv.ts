@@ -32,6 +32,12 @@ export const generateCsv = (records: TimecardRecord[]): string => {
   return [headers.join(';'), ...rows].join('\n');
 };
 
+// Derives the CSV filename from the source PDF name: same name, .csv extension.
+export const csvNameFromPdf = (pdfName: string): string => {
+  const base = pdfName.replace(/\.pdf$/i, '').trim();
+  return `${base || 'cartao_de_ponto'}.csv`;
+};
+
 export const downloadCsv = (csvContent: string, fileName = 'cartao_de_ponto.csv') => {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);

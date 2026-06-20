@@ -11,10 +11,23 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, onCancel, isClosable 
   const [error, setError] = useState<string | null>(null);
 
   const validateApiKey = (key: string) => {
-    // Basic validation for Google Cloud/Gemini API keys
-    // Usually starts with AIzaSy and is around 39 chars
-    const regex = /^AIzaSy[A-Za-z0-9_-]{33}$/;
-    return regex.test(key);
+    // A pasted key should never contain whitespace; this catches the most
+    // common paste errors. Beyond that we keep validation loose on purpose:
+    // the Gemini API is the real source of truth for whether a key works.
+    if (!key || /\s/.test(key)) return false;
+
+    // Legacy Google/AI Studio keys: "AIza" + 35 chars (39 total). The older
+    // "AIzaSy" prefix is just one variant of this broader Google key format.
+    const legacyFormat = /^AIza[A-Za-z0-9_-]{35}$/;
+
+    // New AI Studio "Authentication Key" format (rolled out 2026): an "AQ."
+    // prefix. Google has not published its exact length/charset and it is
+    // still changing, so we only sanity-check the prefix plus a minimum
+    // length rather than pinning down an exact shape (which is what made the
+    // old regex reject valid keys in the first place).
+    const newFormat = /^AQ\.[A-Za-z0-9_\-.]{8,}$/;
+
+    return legacyFormat.test(key) || newFormat.test(key);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -27,7 +40,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, onCancel, isClosable 
     }
 
     if (!validateApiKey(trimmedKey)) {
-      setError('Formato de chave de API inválido. Uma chave válida geralmente começa com "AIzaSy".');
+      setError('Formato de chave de API inválido. Uma chave válida começa com "AIza" ou "AQ.".');
       return;
     }
 

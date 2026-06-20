@@ -3,8 +3,14 @@ import { PDFDocument } from 'pdf-lib';
 /**
  * Splits a PDF file into chunks of a specified number of pages.
  * Returns an array of Base64 strings, each being a valid PDF.
+ *
+ * Default chunk size is tuned for the Gemini free tier, where requests-per-minute
+ * (RPM ~20) is the binding limit, not tokens-per-minute (TPM ~250K). Larger chunks
+ * mean fewer requests: at ~300 tokens/PDF page, 10 pages is ~3K tokens/request — far
+ * under TPM — while a 100-page doc drops from 20 requests to 10, comfortably under RPM.
+ * It can be pushed higher (~15-20) if extraction accuracy holds for your layout.
  */
-export const splitPdfIntoChunks = async (file: File, pagesPerChunk = 5): Promise<string[]> => {
+export const splitPdfIntoChunks = async (file: File, pagesPerChunk = 10): Promise<string[]> => {
   const arrayBuffer = await file.arrayBuffer();
   const pdfDoc = await PDFDocument.load(arrayBuffer);
   const totalPages = pdfDoc.getPageCount();
