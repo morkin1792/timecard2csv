@@ -4,9 +4,11 @@ import type { Part } from '@google/generative-ai';
 // Models ordered by capability. The first is the default; the second is the
 // single-level downgrade used only when the free-tier quota for the current
 // model is exhausted (HTTP 429 / RESOURCE_EXHAUSTED).
-// NOTE: confirm these IDs against the current AI Studio model list if they ever
-// stop resolving — they are the only Gemini-specific strings in the app.
-const MODELS = ['gemini-3.5-flash', 'gemini-3-flash'] as const;
+// Both are on the free tier as of Nov 2026 (gemini-3.5-flash was deprecated and
+// "gemini-3-flash" never existed as a stable ID).
+// NOTE: confirm these IDs against https://ai.google.dev/gemini-api/docs/pricing
+// if they ever stop resolving — they are the only Gemini-specific strings in the app.
+const MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'] as const;
 
 // Backoff schedule (in seconds) for transient "server unavailable" errors
 // (HTTP 500/503). The spec is "at least 10s": wait 10s, then 30s, then 30s.
@@ -83,6 +85,18 @@ const isServerUnavailable = (error: unknown): boolean =>
   hasStatus(error, 500) ||
   hasStatus(error, 503) ||
   /unavailable|overloaded|internal error|try again/i.test(errorText(error));
+
+// Google rejected the key itself. Since 2026 the Gemini API refuses
+// "Unrestricted" keys and blocks long-unused ones, so old keys suddenly break.
+const isKeyRejected = (error: unknown): boolean =>
+  hasStatus(error, 401) ||
+  hasStatus(error, 403) ||
+  /API_KEY|API key|PERMISSION_DENIED/i.test(errorText(error));
+
+const KEY_REJECTED_MESSAGE =
+  'O Google recusou a sua chave de API (chaves antigas deixaram de funcionar). ' +
+  'Crie uma chave nova em https://aistudio.google.com/app/apikey (botão "Create API key"), ' +
+  'depois clique em "Alterar API Key" aqui e cole a chave nova.';
 
 /**
  * Extracts the JSON record array from arbitrary model output. Tolerates
@@ -190,6 +204,9 @@ export const processPdfChunksWithGemini = async (
         }
 
         console.error('Error processing chunk:', error);
+        if (isKeyRejected(error)) {
+          throw new Error(`${KEY_REJECTED_MESSAGE} (Detalhe: ${errorText(error)})`, { cause: error });
+        }
         throw error;
       }
     }

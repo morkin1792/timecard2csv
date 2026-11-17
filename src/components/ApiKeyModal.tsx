@@ -56,6 +56,9 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, onCancel, isClosable 
           Para processar os cartões de ponto, você precisa de uma chave de API do Google Gemini.
           Sua chave será criptografada e salva localmente no seu navegador.
         </p>
+        <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
+          Importante: se você tem uma chave antiga que parou de funcionar, crie uma chave nova no link abaixo.
+        </p>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
